@@ -22,7 +22,7 @@ describe('dedicated runner production preparation', () => {
       readFile('dist/preview-host/_headers','utf8')
     ]);
     expect(html).toContain('content="https://editor.example.com"');
-    expect(headers).toContain('frame-ancestors 'self' https://editor.example.com');
+    expect(headers).toContain("frame-ancestors 'self' https://editor.example.com");
     expect(headers).toContain("default-src 'none'");
     expect(headers).toContain("connect-src 'none'");
   });
