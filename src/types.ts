@@ -3,6 +3,7 @@ export type Diagnostic = Readonly<{ level: 'error' | 'warn' | 'log' | 'info'; me
 export type EngineState = 'idle' | 'starting' | 'running' | 'stopped' | 'disposed';
 export type EngineEvent =
   | { type: 'state'; state: EngineState; runId: number }
-  | { type: 'diagnostic'; diagnostic: Diagnostic };
+  | { type: 'diagnostic'; diagnostic: Diagnostic }
+  | { type: 'css-updated'; runId: number };
 export type EngineListener = (event: EngineEvent) => void;
 export type EngineOptions = Readonly<{ debounceMs?: number; onEvent?: EngineListener }>;
