@@ -25,3 +25,7 @@ The frame is `sandbox="allow-scripts"`, without `allow-same-origin`, resulting i
 
 ## Testing
 Unit tests validate document assembly and protocol shape. Browser integration tests across Chromium, Firefox, and WebKit are required before claiming security and cross-browser compatibility. Performance targets are not benchmarked yet.
+
+## Browser diagnostic differences
+
+The sandboxed preview uses an opaque origin. In the tested Linux WebKit build, uncaught inline JavaScript errors are reported as the generic `Script error.` message even though the runtime error event is delivered. Chromium and Firefox expose the original text in the same integration test. Do not promise full exception details across browsers. This is a browser limitation with the current sandbox strategy, not a reason to relax iframe isolation.
