@@ -2,6 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="utf-8">
+  <meta name="frontlab-editor-origin" content="">
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <title>PFx Frontlab isolated preview runner</title>
   <style>html,body{margin:0;height:100%;overflow:hidden}#stage{height:100%}#stage>iframe{display:block;width:100%;height:100%;border:0}</style>
@@ -12,6 +13,8 @@
   (() => {
     'use strict';
     const channel = 'pfx-frontlab-bridge';
+    // The deployment build fills this value. Raw source remains a local-only fixture.
+    const allowedEditorOrigin = document.querySelector('meta[name="frontlab-editor-origin"]').content;
     const previewChannel = 'pfx-frontlab';
     const stage = document.getElementById('stage');
     let parentOrigin = null;
@@ -27,6 +30,7 @@
     addEventListener('message', event => {
       const d = event.data;
       if (event.source === parent) {
+        if (allowedEditorOrigin && event.origin !== allowedEditorOrigin) return;
         if (!d || d.channel !== channel) return;
         if (d.type === 'mount') {
           if (parentOrigin && event.origin !== parentOrigin) return;
@@ -64,7 +68,7 @@
           typeof d.diagnostic.message !== 'string' || d.diagnostic.message.length > 16384)) return;
       if (parentOrigin) parent.postMessage(d, parentOrigin);
     });
-    parent.postMessage({ channel, type: 'runner-ready' }, '*');
+    parent.postMessage({ channel, type: 'runner-ready' }, allowedEditorOrigin || '*');
   })();
   </script>
 </body>

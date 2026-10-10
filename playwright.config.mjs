@@ -23,7 +23,7 @@ export default defineConfig({
       reuseExistingServer: !process.env.CI
     },
     {
-      command: 'python3 -m http.server 4174 --bind 127.0.0.1',
+      command: 'FRONTLAB_EDITOR_ORIGIN=http://127.0.0.1:4173 node scripts/prepare-preview-host.mjs && node scripts/serve-preview-host.mjs',
       url: 'http://127.0.0.1:4174/preview-host/runner.html',
       timeout: 20_000,
       reuseExistingServer: !process.env.CI

@@ -1,0 +1,45 @@
+name: Deploy isolated preview to Cloudflare Pages
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v4
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Validate deployment configuration
+        env:
+          FRONTLAB_EDITOR_ORIGIN: ${{ vars.FRONTLAB_EDITOR_ORIGIN }}
+          FRONTLAB_PREVIEW_PROJECT: ${{ vars.FRONTLAB_PREVIEW_PROJECT }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          FRONTLAB_PREVIEW_URL: ${{ vars.FRONTLAB_PREVIEW_URL }}
+        run: |
+          test -n "$FRONTLAB_EDITOR_ORIGIN"
+          test -n "$FRONTLAB_PREVIEW_PROJECT"
+          test -n "$CLOUDFLARE_ACCOUNT_ID"
+          test -n "$CLOUDFLARE_API_TOKEN"
+          test -n "$FRONTLAB_PREVIEW_URL"
+      - name: Prepare origin-bound static runner
+        env:
+          FRONTLAB_EDITOR_ORIGIN: ${{ vars.FRONTLAB_EDITOR_ORIGIN }}
+        run: node scripts/prepare-preview-host.mjs
+      - name: Deploy to the existing Cloudflare Pages project
+        uses: cloudflare/wrangler-action@v4
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          command: pages deploy dist/preview-host --project-name=${{ vars.FRONTLAB_PREVIEW_PROJECT }} --branch=main
+      - name: Verify the deployed HTTP security boundary
+        env:
+          FRONTLAB_EDITOR_ORIGIN: ${{ vars.FRONTLAB_EDITOR_ORIGIN }}
+          FRONTLAB_PREVIEW_URL: ${{ vars.FRONTLAB_PREVIEW_URL }}
+        run: node scripts/verify-preview-host.mjs "$FRONTLAB_PREVIEW_URL"
