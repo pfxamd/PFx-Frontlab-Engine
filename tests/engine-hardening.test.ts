@@ -4,7 +4,7 @@ import { FrontlabEngine } from '../src/engine.js';
 function harness() {
   let messageHandler: ((event: unknown) => void) | null = null;
   const frame = {
-    contentWindow: {},
+    contentWindow: { postMessage: vi.fn() },
     srcdoc: '',
     setAttribute: vi.fn(),
     remove: vi.fn()
@@ -17,7 +17,7 @@ function harness() {
   const doc = { defaultView: win, createElement: vi.fn(() => frame) };
   const host = { ownerDocument: doc, append: vi.fn() };
   const engine = new FrontlabEngine(host as unknown as HTMLElement, { debounceMs: 0 });
-  const receive = (origin: string, type: 'ready' | 'diagnostic', diagnostic?: object) => {
+  const receive = (origin: string, type: 'ready' | 'diagnostic' | 'css-updated', diagnostic?: object) => {
     const match = frame.srcdoc.match(/const token="([^"]+)",runId=(\d+)/);
     if (!match || !messageHandler) throw new Error('Missing bootstrap');
     messageHandler({
@@ -54,6 +54,29 @@ describe('runtime boundary hardening', () => {
     engine.subscribe(() => { throw new Error('app callback failed'); });
     expect(() => engine.run()).not.toThrow();
     expect(() => engine.dispose()).not.toThrow();
+  });
+
+  it('sends a scoped CSS patch without resetting a running preview', () => {
+    const { engine, frame, receive } = harness();
+    const updated = vi.fn();
+    engine.subscribe(e => { if (e.type === 'css-updated') updated(); });
+    engine.run();
+    receive('null', 'ready');
+    const runId = engine.runId;
+    engine.updateCSS('body { color: rebeccapurple }');
+    expect(engine.runId).toBe(runId);
+    expect(frame.contentWindow.postMessage).toHaveBeenCalledWith(
+      expect.objectContaining({
+        channel: 'pfx-frontlab',
+        type: 'css-patch',
+        runId,
+        css: 'body { color: rebeccapurple }'
+      }),
+      '*'
+    );
+    receive('null', 'css-updated');
+    expect(updated).toHaveBeenCalledTimes(1);
+    engine.dispose();
   });
 
   it('bounds diagnostic forwarding to 200 events per run', () => {
