@@ -24,7 +24,7 @@ export default defineConfig({
     },
     {
       command: 'FRONTLAB_EDITOR_ORIGIN=http://127.0.0.1:4173 node scripts/prepare-preview-host.mjs && node scripts/serve-preview-host.mjs',
-      url: 'http://127.0.0.1:4174/preview-host/runner.html',
+      url: 'http://127.0.0.1:4174/runner.html',
       timeout: 20_000,
       reuseExistingServer: !process.env.CI
     }
