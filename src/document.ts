@@ -31,6 +31,15 @@ function bootstrap(token: string, runId: number): string {
     }
     addEventListener('error',e=>send('diagnostic',{level:'error',kind:'runtime',message:String(e.message||'Script error')}));
     addEventListener('unhandledrejection',e=>send('diagnostic',{level:'error',kind:'promise',message:stringify(e.reason)}));
+    // CSS is patched by the trusted parent without reloading preview DOM state.
+    addEventListener('message',event=>{
+      const d=event.data;
+      if(event.source!==parent || !d || d.channel!=='pfx-frontlab' ||
+         d.type!=='css-patch' || d.token!==token || d.runId!==runId ||
+         typeof d.css!=='string') return;
+      const style=document.querySelector('style[data-frontlab-css]');
+      if(style){style.textContent=d.css;send('css-updated');}
+    });
     // Report readiness only after the document and user scripts are parsed.
     if(document.readyState==='loading'){
       document.addEventListener('DOMContentLoaded',()=>send('ready'),{once:true});
