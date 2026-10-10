@@ -29,3 +29,7 @@ Unit tests validate document assembly and protocol shape. Browser integration te
 ## Browser diagnostic differences
 
 The sandboxed preview uses an opaque origin. In the tested Linux WebKit build, uncaught inline JavaScript errors are reported as the generic `Script error.` message even though the runtime error event is delivered. Chromium and Firefox expose the original text in the same integration test. Do not promise full exception details across browsers. This is a browser limitation with the current sandbox strategy, not a reason to relax iframe isolation.
+
+## Performance measurements
+
+Run `npm run benchmark` after `npm run build` to measure document-assembly median, p95, and worst-case timing for 1 KiB, 32 KiB, and 256 KiB samples. Results are printed to GitHub Actions logs on each commit. These are indicative Node timings, not preview rendering latency or proof of memory limits. Browser-level performance and stress validation require separate measurements on actual hardware.

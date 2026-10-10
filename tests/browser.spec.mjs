@@ -143,3 +143,60 @@ test('rapid CSS-only patching retains only the final intended style', async ({ p
   await expect(preview.locator('#target')).toHaveCSS('color', 'rgb(29, 0, 0)');
   await expect(page.locator('#preview iframe')).toHaveCount(1);
 });
+
+test('host remains intact when preview attempts top-level navigation', async ({ page }) => {
+  await page.evaluate((files) => frontlab.engine.update(files, true), source(
+    '<p id="nav">Navigation test</p>',
+    '',
+    'try { top.location.assign("/examples/browser-test.html?escape=1"); } catch (e) { console.info("navigation denied"); }'
+  ));
+  const preview = page.frameLocator('#preview iframe');
+  await expect(preview.locator('#nav')).toHaveText('Navigation test');
+  await expect(page.locator('#host-secret')).toHaveText('HOST_PRIVATE_MARKER');
+  expect(new URL(page.url()).searchParams.has('escape')).toBe(false);
+});
+
+test('diagnostic storms are capped without breaking preview', async ({ page }) => {
+  await page.evaluate((files) => frontlab.engine.update(files, true), source(
+    '<p id="storm">Still active</p>',
+    '',
+    'for (let i = 0; i < 260; i++) console.log("flood", i);'
+  ));
+  await expect(page.frameLocator('#preview iframe').locator('#storm')).toHaveText('Still active');
+  await expect.poll(() => page.evaluate(() => frontlab.events.filter(e =>
+    e.type === 'diagnostic' && e.diagnostic.kind === 'console').length)).toBe(200);
+  await expect.poll(() => page.evaluate(() => frontlab.engine.status)).toBe('running');
+});
+
+test('measures a sequence of real iframe runs', async ({ page, browserName }) => {
+  const stats = await page.evaluate(async () => {
+    const engine = frontlab.engine;
+    const durations = [];
+    for (let i = 0; i < 8; i++) {
+      const previous = engine.runId;
+      const start = performance.now();
+      const ready = new Promise((resolve) => {
+        const unsubscribe = engine.subscribe(event => {
+          if (event.type === 'state' && event.state === 'running' && event.runId > previous) {
+            unsubscribe();
+            resolve();
+          }
+        });
+      });
+      engine.update({ html: '<main><p>Run ' + i + '</p></main>', css: 'main{padding:12px}', javascript: '' }, true);
+      await ready;
+      durations.push(performance.now() - start);
+    }
+    return {
+      runs: durations.length,
+      p50Ms: [...durations].sort((a, b) => a - b)[Math.floor(durations.length / 2)],
+      worstMs: Math.max(...durations),
+      remainingFrames: document.querySelectorAll('#preview iframe').length
+    };
+  });
+  console.log('Frontlab preview benchmark', browserName, JSON.stringify(stats));
+  expect(stats.runs).toBe(8);
+  expect(stats.remainingFrames).toBe(1);
+  // A very loose watchdog, not an advertised performance guarantee.
+  expect(stats.worstMs).toBeLessThan(5000);
+});
