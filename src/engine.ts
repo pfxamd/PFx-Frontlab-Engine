@@ -27,6 +27,8 @@ export class FrontlabEngine {
       if (m.token !== this.activeToken || m.runId !== this.activeRun) return;
       if (m.type === 'ready') {
         if (this.state === 'starting') this.setState('running');
+      } else if (m.type === 'css-updated') {
+        this.emit({ type: 'css-updated', runId: m.runId });
       } else if (this.diagnosticCount < 200) {
         this.diagnosticCount++;
         this.emit({ type:'diagnostic', diagnostic:{ ...m.diagnostic, runId:m.runId } });
@@ -53,6 +55,28 @@ export class FrontlabEngine {
     this.cancelTimer();
     if (immediate) this.run();
     else this.timer = setTimeout(() => { this.timer = null; this.run(); }, this.debounceMs);
+  }
+  /** Update only the stylesheet while keeping the preview DOM and JS state. */
+  updateCSS(css: string): void {
+    this.assertActive();
+    if (typeof css !== 'string') throw new TypeError('CSS must be a string');
+    const files = { ...this.current, css };
+    const encoder = new TextEncoder();
+    const size = encoder.encode(files.html).length + encoder.encode(files.css).length + encoder.encode(files.javascript).length;
+    if (size > 1024 * 1024) throw new RangeError('Frontlab source exceeds 1 MiB');
+    this.current = files;
+    this.cancelTimer();
+    if (this.state !== 'running' || !this.frame?.contentWindow) {
+      this.run();
+      return;
+    }
+    this.frame.contentWindow.postMessage({
+      channel: 'pfx-frontlab',
+      type: 'css-patch',
+      token: this.activeToken,
+      runId: this.activeRun,
+      css
+    }, '*');
   }
   run(): number {
     this.assertActive();
