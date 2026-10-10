@@ -8,7 +8,7 @@
     import { FrontlabEngine } from '../dist/index.js';
     const events=[];
     const engine = new FrontlabEngine(document.getElementById('preview'),{
-      runnerUrl:'http://127.0.0.1:4174/preview-host/runner.html',
+      runnerUrl:'http://127.0.0.1:4174/runner.html',
       startupTimeoutMs:800,
       debounceMs:25,
       onEvent(event){events.push(event)}
