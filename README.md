@@ -7,7 +7,7 @@ Framework-independent browser runtime for HTML, CSS, and JavaScript experiments.
 - Execute in a sandboxed iframe with opaque origin and restrictive CSP.
 - Distinguish build, runtime, and protocol diagnostics.
 - Prevent stale preview messages from being applied after another run.
-- Provide explicit lifecycle controls and optional CSS-only hot updates.
+- Provide explicit lifecycle controls and CSS-only live updates via `engine.updateCSS(css)`.
 
 ## Security
 This library executes *untrusted code*. Treat the preview as hostile:
