@@ -15,7 +15,7 @@ This library executes *untrusted code*. Treat the preview as hostile:
 - Do not grant the runner access to application credentials or private storage.
 - Host the editor with a restrictive CSP; do not relax its CSP for previews.
 - A sandbox is **not** a CPU or memory quota. Browsers can still be exhausted by malicious code.
-- The default preview CSP blocks network connections, external resources, form submissions, and navigation; use a separate origin and explicit policy when remote resources are required.
+- The default preview CSP blocks script-initiated network connections, external resources, and form submissions. The iframe sandbox blocks top-level navigation; preview self-navigation and browser resource behavior require separate testing and must not be considered completely blocked. Use a separate preview origin for stronger isolation.
 
 ## Development
 ```sh
