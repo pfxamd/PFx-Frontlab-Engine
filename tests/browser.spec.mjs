@@ -200,3 +200,106 @@ test('measures a sequence of real iframe runs', async ({ page, browserName }) =>
   // A very loose watchdog, not an advertised performance guarantee.
   expect(stats.worstMs).toBeLessThan(5000);
 });
+
+
+test('opaque sandbox denies local storage and access to host DOM', async ({ page }) => {
+  await page.evaluate((files) => frontlab.engine.update(files, true), source(
+    '<output id="storage"></output>',
+    '',
+    [
+      'const result = document.getElementById("storage");',
+      'try { result.dataset.local = String(localStorage.getItem("frontlab")); } catch { result.dataset.local = "blocked"; }',
+      'try { result.dataset.parent = String(parent.document.querySelector("#host-secret")); } catch { result.dataset.parent = "blocked"; }',
+      'try { result.dataset.cookie = String(document.cookie || "empty"); } catch { result.dataset.cookie = "blocked"; }'
+    ].join("\n")
+  ));
+  const node = page.frameLocator('#preview iframe').locator('#storage');
+  await expect(node).toHaveAttribute('data-local', 'blocked');
+  await expect(node).toHaveAttribute('data-parent', 'blocked');
+  await expect(node).toHaveAttribute('data-cookie', /^(empty|blocked)$/);
+  await expect(page.locator('#host-secret')).toHaveText('HOST_PRIVATE_MARKER');
+});
+
+test('sandbox blocks popups, even from user-activated preview controls', async ({ page }) => {
+  await page.evaluate((files) => frontlab.engine.update(files, true), source(
+    '<button id="popup">Try popup</button><output id="out"></output>',
+    '',
+    'document.getElementById("popup").onclick = () => {const result=window.open("about:blank", "_blank"); document.getElementById("out").textContent=result ? "opened" : "blocked";};'
+  ));
+  await page.frameLocator('#preview iframe').locator('#popup').click();
+  await expect(page.frameLocator('#preview iframe').locator('#out')).toHaveText('blocked');
+  await expect(page.locator('#host-secret')).toHaveText('HOST_PRIVATE_MARKER');
+});
+
+test('top-level navigation is blocked even after user interaction', async ({ page }) => {
+  await page.evaluate((files) => frontlab.engine.update(files, true), source(
+    '<button id="escape">Escape</button><output id="out"></output>',
+    '',
+    'document.querySelector("#escape").onclick = () => { try { top.location.href = "/examples/browser-test.html?escaped=1"; } catch { document.querySelector("#out").textContent="denied"; } };'
+  ));
+  await page.frameLocator('#preview iframe').locator('#escape').click();
+  await expect(page.frameLocator('#preview iframe').locator('#escape')).toBeVisible();
+  expect(new URL(page.url()).searchParams.has('escaped')).toBe(false);
+});
+
+test('sandbox blocks form submission and keeps host intact', async ({ page }) => {
+  const outgoing = [];
+  page.on('request', req => { if (req.url().includes('/probe-form-submit')) outgoing.push(req.url()); });
+  await page.evaluate((files) => frontlab.engine.update(files, true), source(
+    '<form action="/probe-form-submit" method="GET"><button id="submit">Submit</button></form>',
+    '',
+    ''
+  ));
+  await page.frameLocator('#preview iframe').locator('#submit').click();
+  await page.waitForTimeout(200);
+  expect(outgoing).toEqual([]);
+  await expect(page.frameLocator('#preview iframe').locator('#submit')).toBeVisible();
+  await expect(page.locator('#host-secret')).toHaveText('HOST_PRIVATE_MARKER');
+});
+
+test('CSP prevents worker creation from a blob URL', async ({ page }) => {
+  await page.evaluate((files) => frontlab.engine.update(files, true), source(
+    '<output id="worker">blocked</output>',
+    '',
+    'try { const url = URL.createObjectURL(new Blob(["postMessage(1)"], {type:"text/javascript"})); const worker = new Worker(url); worker.onmessage = () => document.querySelector("#worker").textContent="allowed"; worker.onerror = () => {worker.terminate();}; } catch (e) { console.info("worker blocked"); }'
+  ));
+  const worker = page.frameLocator('#preview iframe').locator('#worker');
+  await expect(worker).toHaveText('blocked');
+  await page.waitForTimeout(200);
+  await expect(worker).toHaveText('blocked');
+});
+
+test('bounded CPU load eventually allows restart; this is not a runaway-loop guarantee', async ({ page }) => {
+  await page.evaluate((files) => frontlab.engine.update(files, true), source(
+    '<p id="cpu">Busy</p>',
+    '',
+    'const until=performance.now()+140; while(performance.now()<until){}; document.querySelector("#cpu").textContent="Recovered";'
+  ));
+  await expect(page.frameLocator('#preview iframe').locator('#cpu')).toHaveText('Recovered', {timeout:10000});
+  await page.evaluate((files) => frontlab.engine.update(files, true), source('<p id="cpu">Next run</p>'));
+  await expect(page.frameLocator('#preview iframe').locator('#cpu')).toHaveText('Next run');
+  await expect(page.locator('#preview iframe')).toHaveCount(1);
+});
+
+test('large but bounded DOM work does not prevent stopping the preview', async ({ page }) => {
+  await page.evaluate((files) => frontlab.engine.update(files, true), source(
+    '<p id="nodes">0</p>',
+    '',
+    'const fragment=document.createDocumentFragment(); for(let i=0;i<2500;i++){ const node=document.createElement("span");node.textContent=String(i);fragment.appendChild(node); } document.body.appendChild(fragment); document.querySelector("#nodes").textContent=String(document.querySelectorAll("span").length);'
+  ));
+  await expect(page.frameLocator('#preview iframe').locator('#nodes')).toHaveText('2500');
+  await page.evaluate(() => frontlab.engine.stop());
+  await expect(page.locator('#preview iframe')).toHaveCount(0);
+  await expect(page.locator('#host-secret')).toHaveText('HOST_PRIVATE_MARKER');
+});
+
+test('many console calls forward at most the documented diagnostic budget', async ({ page }) => {
+  await page.evaluate((files) => frontlab.engine.update(files, true), source(
+    '<p id="flood">Done</p>',
+    '',
+    'for(let i=0;i<3000;i++) console.log("diagnostic",i);'
+  ));
+  await expect(page.frameLocator('#preview iframe').locator('#flood')).toHaveText('Done');
+  await expect.poll(() => page.evaluate(() => frontlab.events.filter(e => e.type === 'diagnostic').length)).toBe(200);
+  await expect(page.locator('#preview iframe')).toHaveCount(1);
+});

@@ -10,6 +10,8 @@ Framework-independent browser runtime for HTML, CSS, and JavaScript experiments.
 - Provide explicit lifecycle controls and CSS-only live updates via `engine.updateCSS(css)`.
 
 ## Security
+**Development alpha:** only self-authored snippets are appropriate until the preview is hosted on a separate isolated origin. See [Threat model](docs/threat-model.md).
+
 This library executes *untrusted code*. Treat the preview as hostile:
 - Embed the frame with `sandbox="allow-scripts"`, **never** `allow-same-origin`.
 - Do not grant the runner access to application credentials or private storage.

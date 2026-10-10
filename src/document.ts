@@ -85,11 +85,27 @@ function bootstrap(token: string, runId: number): string {
   return `(function(){
     'use strict';
     const token=${JSON.stringify(token)},runId=${runId};
-    const send=(type,diagnostic)=>parent.postMessage({channel:'pfx-frontlab',token,runId,type,...(diagnostic?{diagnostic}:{})},'*');
+    // Cap ordinary diagnostics at their source so console storms don't flood the host.
+    // Malicious code in the same realm can still call parent.postMessage directly.
+    let sentDiagnostics=0;
+    const maxDiagnostics=200,maxMessageLength=16384;
+    const send=(type,diagnostic)=>{
+      if(diagnostic){
+        if(sentDiagnostics>=maxDiagnostics) return;
+        sentDiagnostics++;
+        diagnostic={...diagnostic,message:String(diagnostic.message).slice(0,maxMessageLength)};
+      }
+      parent.postMessage({channel:'pfx-frontlab',token,runId,type,...(diagnostic?{diagnostic}:{})},'*');
+    };
     const stringify=(x)=>{try{return typeof x==='string'?x:JSON.stringify(x)??String(x)}catch{return String(x)}};
     for(const level of ['log','info','warn','error']){
       const old=console[level].bind(console);
-      console[level]=(...args)=>{send('diagnostic',{level,kind:'console',message:args.map(stringify).join(' ')});old(...args)};
+      console[level]=(...args)=>{
+        if(sentDiagnostics<maxDiagnostics){
+          send('diagnostic',{level,kind:'console',message:args.map(stringify).join(' ')});
+          old(...args);
+        }
+      };
     }
     addEventListener('error',e=>send('diagnostic',{level:'error',kind:'runtime',message:String(e.message||'Script error')}));
     addEventListener('unhandledrejection',e=>send('diagnostic',{level:'error',kind:'promise',message:stringify(e.reason)}));

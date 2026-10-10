@@ -19,11 +19,13 @@ The frame is `sandbox="allow-scripts"`, without `allow-same-origin`, resulting i
 - Inline CSP applies only after parsing the policy. The builder uses an HTML-aware boundary locator to skip comments, quoted attributes, and raw-text tags while placing the policy ahead of user scripts. It is not a full WHATWG HTML parser; unusual malformed markup and document navigation still require separate tests.
 - `sandbox` does not provide guaranteed CPU/memory limits. Infinite loops can still stall a page; separate origin/process and stronger browser-level isolation should be evaluated before accepting shared untrusted code.
 - Inline user JavaScript and HTML event handlers are allowed by design within the isolated frame.
-- Network remains blocked; adding remote assets requires an explicit policy design.
+- Fetch/XHR and configured external resource loads are blocked by the current CSP, but self-navigation by a sandboxed frame is not equivalent to a fetch and is not reliably stopped by the meta CSP.
 - CSS-only changes use `updateCSS(css)` to send a scoped message to the active preview; this preserves DOM and JavaScript state. Pending or stopped previews start a fresh run.
 - HTML injection is boundary-aware but not a full standards-compliant parser. For arbitrary hostile shared documents, enforce CSP headers on a dedicated preview origin.
 
 ## Testing
+See [threat model](./threat-model.md) for adversarial test scope and release requirements.
+
 Unit tests validate document assembly and protocol shape. Browser integration tests across Chromium, Firefox, and WebKit are required before claiming security and cross-browser compatibility. Performance targets are not benchmarked yet.
 
 ## Browser diagnostic differences
