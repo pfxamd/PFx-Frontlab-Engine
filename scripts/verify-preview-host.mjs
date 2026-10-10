@@ -1,6 +1,6 @@
 const target=process.argv[2];
-const origin=process.env.FRONTLAB_EDITOR_ORIGIN?.trim();
-if (!target || !origin) {
+const origin=process.env.FRONTLAB_EDITOR_ORIGIN?.trim() || 'https://pfxamd.github.io';
+if (!target) {
   console.error('Usage: FRONTLAB_EDITOR_ORIGIN=https://editor.example node scripts/verify-preview-host.mjs https://preview.example/runner.html');
   process.exit(2);
 }

@@ -6,8 +6,15 @@ describe('dedicated runner production preparation', () => {
   const run = (origin: string) => spawnSync(process.execPath,['scripts/prepare-preview-host.mjs'],{
     cwd:process.cwd(),encoding:'utf8',env:{...process.env,FRONTLAB_EDITOR_ORIGIN:origin}
   });
-  it('rejects missing editor origin (fail closed)',()=>{
-    expect(run('').status).not.toBe(0);
+  it('uses the known public editor origin when the override is absent', async () => {
+    const result=run('');
+    expect(result.status,result.stderr).toBe(0);
+    const [html,headers]=await Promise.all([
+      readFile('dist/preview-host/runner.html','utf8'),
+      readFile('dist/preview-host/_headers','utf8')
+    ]);
+    expect(html).toContain('content="https://pfxamd.github.io"');
+    expect(headers).toContain("frame-ancestors 'self' https://pfxamd.github.io");
   });
   it('rejects protocol and origin confusion',()=>{
     for(const origin of ['http://example.com','https://example.com/path','https://user:pass@example.com','javascript:alert(1)']) {

@@ -3,7 +3,10 @@ import { resolve, join } from 'node:path';
 
 const sourceDir = resolve('preview-host');
 const outputDir = resolve('dist/preview-host');
-const supplied = process.env.FRONTLAB_EDITOR_ORIGIN?.trim();
+// The deployed Frontlab editor is hosted at https://pfxamd.github.io/PFx-Frontlab/.
+// An origin excludes the URL path. A valid explicit override remains supported.
+export const DEFAULT_EDITOR_ORIGIN = 'https://pfxamd.github.io';
+const supplied = process.env.FRONTLAB_EDITOR_ORIGIN?.trim() || DEFAULT_EDITOR_ORIGIN;
 
 function validateOrigin(value) {
   if (!value) throw new Error('FRONTLAB_EDITOR_ORIGIN is required; refusing to build an unbound preview runner');

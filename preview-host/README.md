@@ -28,15 +28,14 @@ Connect the existing GitHub repository to a separate Cloudflare Pages project wi
 - **Root directory:** repository root (`/`)
 - **Build command:** `npm run build:runner`
 - **Build output directory:** `dist/preview-host`
-- **Environment variable:** `FRONTLAB_EDITOR_ORIGIN` = the actual, exact HTTPS origin of the future editor UI, for example `https://editor.example.com` (placeholder only).
+- **Environment variable:** none required. The build binds the runner to the actual editor origin, `https://pfxamd.github.io`. To move the editor to a different origin later, set `FRONTLAB_EDITOR_ORIGIN` explicitly to its HTTPS origin.
 
-The build fails closed if `FRONTLAB_EDITOR_ORIGIN` is missing, includes a path, or uses non-HTTPS (except local test origins). The output `_headers` adds a real HTTP `frame-ancestors` restriction, and the trusted bridge only accepts parent messages originating from the configured editor.
+The build always binds to an explicit HTTPS editor origin (the known production origin or a validated override). Invalid explicit origins are rejected. The origin must never be a wildcard. The output `_headers` adds a real HTTP `frame-ancestors` restriction, and the trusted bridge only accepts parent messages originating from the configured editor.
 
 When deployed, verify the real response (not just the GitHub source):
 
 ```sh
-FRONTLAB_EDITOR_ORIGIN=https://editor.example.com \
-  node scripts/verify-preview-host.mjs https://your-actual-preview-domain.example/runner.html
+node scripts/verify-preview-host.mjs https://your-actual-preview-domain.example/runner.html
 ```
 
 Production deployment and live header verification are **not complete** until those checks succeed against an actual deployed URL.
