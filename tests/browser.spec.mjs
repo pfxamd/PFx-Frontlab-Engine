@@ -112,14 +112,14 @@ test('escaped closing-script text stays inside a user JS string', async ({ page 
 
 test('CSP initializes before scripts when source contains deceptive head markup', async ({ page }) => {
   await page.evaluate((files) => frontlab.engine.update(files, true), source(
-    '<!-- <head> --><script>document.body.dataset.marker = document.querySelectorAll(\'meta[http-equiv="Content-Security-Policy"]\').length;</script><p id="proof">Ready</p>',
+    '<!-- <head> --><script>document.documentElement.dataset.marker = document.querySelectorAll(\'meta[http-equiv="Content-Security-Policy"]\').length;</script><p id="proof">Ready</p>',
     '',
     ''
   ));
   const preview = page.frameLocator('#preview iframe');
   await expect(preview.locator('#proof')).toHaveText('Ready');
   await expect(preview.locator('meta[http-equiv="Content-Security-Policy"]')).toHaveCount(1);
-  await expect(preview.locator('body')).toHaveAttribute('data-marker', '1');
+  await expect(preview.locator('html')).toHaveAttribute('data-marker', '1');
 });
 
 test('does not lose the appended script when user HTML contains fake body closing tags', async ({ page }) => {
