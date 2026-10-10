@@ -224,7 +224,7 @@ test('sandbox blocks popups, even from user-activated preview controls', async (
   await page.evaluate((files) => frontlab.engine.update(files, true), source(
     '<button id="popup">Try popup</button><output id="out"></output>',
     '',
-    'document.getElementById("popup").onclick = () => {const result=window.open("about:blank", "_blank"); document.getElementById("out").textContent=result ? "opened" : "blocked";};'
+    'document.getElementById("popup").onclick = () => {const out=document.getElementById("out"); try { const result=window.open("about:blank", "_blank"); out.textContent=result ? "opened" : "blocked"; } catch { out.textContent="blocked"; }};'
   ));
   await page.frameLocator('#preview iframe').locator('#popup').click();
   await expect(page.frameLocator('#preview iframe').locator('#out')).toHaveText('blocked');
