@@ -14,7 +14,7 @@ if (!response.ok) throw new Error('Runner returned HTTP '+response.status);
 const csp=response.headers.get('content-security-policy')||'';
 const required=[
   "default-src 'none'", "connect-src 'none'", "object-src 'none'",
-  "form-action 'none'", "frame-ancestors "+origin
+  "form-action 'none'", "frame-ancestors 'self' "+origin
 ];
 for(const fragment of required) {
   if(!csp.includes(fragment)) throw new Error('Missing HTTP CSP directive: '+fragment);

@@ -27,9 +27,9 @@ if (/\bframe-ancestors\b/.test(headerTemplate)) {
   throw new Error('Runner header template must not contain a static frame-ancestors directive');
 }
 const finalHeaders = headerTemplate.replace(/^(  Content-Security-Policy: [^\r\n]+)/m,
-  '$1; frame-ancestors ' + editorOrigin);
+  "$1; frame-ancestors 'self' " + editorOrigin);
 if (finalHeaders === headerTemplate) throw new Error('Runner CSP header not found');
-if (!finalHeaders.includes('frame-ancestors ' + editorOrigin)) throw new Error('Frame ancestors origin was not set');
+if (!finalHeaders.includes("frame-ancestors 'self' " + editorOrigin)) throw new Error('Frame ancestors origin was not set');
 await mkdir(outputDir,{recursive:true});
 await writeFile(join(outputDir,'runner.html'),html,'utf8');
 await writeFile(join(outputDir,'_headers'),finalHeaders,'utf8');

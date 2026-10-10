@@ -3,6 +3,8 @@ import { test, expect } from '@playwright/test';
 const source = (html = '', css = '', javascript = '') => ({ html, css, javascript });
 
 test.beforeEach(async ({ page }) => {
+  page.on('console', msg => { if (msg.type() === 'error') console.log('BROWSER_CSP_ERROR:', msg.text()); });
+  page.on('pageerror', error => console.log('BROWSER_PAGE_ERROR:', error.message));
   await page.goto('/examples/browser-test-remote.html');
   await page.waitForFunction(() => !!window.frontlab?.engine);
 });
