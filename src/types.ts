@@ -4,6 +4,7 @@ export type EngineState = 'idle' | 'starting' | 'running' | 'stopped' | 'dispose
 export type EngineEvent =
   | { type: 'state'; state: EngineState; runId: number }
   | { type: 'diagnostic'; diagnostic: Diagnostic }
-  | { type: 'css-updated'; runId: number };
+  | { type: 'css-updated'; runId: number }
+  | { type: 'timeout'; runId: number; timeoutMs: number };
 export type EngineListener = (event: EngineEvent) => void;
-export type EngineOptions = Readonly<{ debounceMs?: number; onEvent?: EngineListener }>;
+export type EngineOptions = Readonly<{ debounceMs?: number; onEvent?: EngineListener; runnerUrl?: string; startupTimeoutMs?: number }>;

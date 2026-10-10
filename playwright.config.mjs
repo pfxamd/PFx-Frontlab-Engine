@@ -15,10 +15,18 @@ export default defineConfig({
     { name: 'firefox', use: { browserName: 'firefox' } },
     { name: 'webkit', use: { browserName: 'webkit' } }
   ],
-  webServer: {
-    command: 'python3 -m http.server 4173 --bind 127.0.0.1',
-    url: 'http://127.0.0.1:4173/examples/browser-test.html',
-    timeout: 20_000,
-    reuseExistingServer: !process.env.CI
-  }
+  webServer: [
+    {
+      command: 'python3 -m http.server 4173 --bind 127.0.0.1',
+      url: 'http://127.0.0.1:4173/examples/browser-test.html',
+      timeout: 20_000,
+      reuseExistingServer: !process.env.CI
+    },
+    {
+      command: 'python3 -m http.server 4174 --bind 127.0.0.1',
+      url: 'http://127.0.0.1:4174/preview-host/runner.html',
+      timeout: 20_000,
+      reuseExistingServer: !process.env.CI
+    }
+  ]
 });

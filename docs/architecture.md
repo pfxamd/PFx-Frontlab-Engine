@@ -35,3 +35,7 @@ The sandboxed preview uses an opaque origin. In the tested Linux WebKit build, u
 ## Performance measurements
 
 Run `npm run benchmark` after `npm run build` to measure document-assembly median, p95, and worst-case timing for 1 KiB, 32 KiB, and 256 KiB samples. Results are printed to GitHub Actions logs on each commit. These are indicative Node timings, not preview rendering latency or proof of memory limits. Browser-level performance and stress validation require separate measurements on actual hardware.
+
+## Optional remote runner
+
+The engine supports a cross-origin runner via `runnerUrl` and `startupTimeoutMs`. Details and deployment constraints are in [preview-host](../preview-host/README.md). The legacy `srcdoc` adapter remains supported for migration, but is not recommended for unknown or shared snippets.

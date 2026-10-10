@@ -10,6 +10,10 @@ export class FrontlabEngine {
   private diagnosticCount = 0;
   private state: EngineState = 'idle';
   private timer: ReturnType<typeof setTimeout> | null = null;
+  private startupTimer: ReturnType<typeof setTimeout> | null = null;
+  private readonly startupTimeoutMs: number;
+  private readonly runnerUrl: URL | null;
+  private compiledDocument = '';
   private readonly listeners = new Set<EngineListener>();
   private readonly debounceMs: number;
   private readonly container: HTMLElement;
@@ -20,13 +24,41 @@ export class FrontlabEngine {
     if (!Number.isFinite(options.debounceMs ?? 120) || (options.debounceMs ?? 120) < 0) throw new RangeError('Invalid debounceMs');
     this.container = container;
     this.debounceMs = options.debounceMs ?? 120;
+    this.startupTimeoutMs = options.startupTimeoutMs ?? 12_000;
+    if (!Number.isSafeInteger(this.startupTimeoutMs) || this.startupTimeoutMs < 50 || this.startupTimeoutMs > 120_000) {
+      throw new RangeError('startupTimeoutMs must be between 50 and 120000');
+    }
+    const win = container.ownerDocument.defaultView;
+    if (options.runnerUrl) {
+      if (!win?.location) throw new TypeError('A browser location is required');
+      const url = new URL(options.runnerUrl, win.location.href);
+      const loopback = ['localhost', '127.0.0.1', '[::1]'].includes(url.hostname);
+      if (url.origin === win.location.origin || !['http:', 'https:'].includes(url.protocol) ||
+          (url.protocol !== 'https:' && !loopback) || url.username || url.password) {
+        throw new TypeError('Runner must use a separate HTTPS origin (localhost HTTP allowed for testing)');
+      }
+      this.runnerUrl = url;
+    } else {
+      this.runnerUrl = null;
+    }
     if (options.onEvent) this.listeners.add(options.onEvent);
     this.receive = (event) => {
-      if (!this.frame || event.source !== this.frame.contentWindow || event.origin !== 'null' || !isRuntimeMessage(event.data)) return;
+      if (!this.frame || event.source !== this.frame.contentWindow) return;
+      if (this.runnerUrl && event.origin === this.runnerUrl.origin &&
+          event.data?.channel === 'pfx-frontlab-bridge' && event.data?.type === 'runner-ready') {
+        if (this.state === 'starting') {
+          this.frame.contentWindow?.postMessage({
+            channel: 'pfx-frontlab-bridge', type: 'mount',
+            token: this.activeToken, runId: this.activeRun, html: this.compiledDocument
+          }, this.runnerUrl.origin);
+        }
+        return;
+      }
+      if (event.origin !== (this.runnerUrl?.origin ?? 'null') || !isRuntimeMessage(event.data)) return;
       const m = event.data;
       if (m.token !== this.activeToken || m.runId !== this.activeRun) return;
       if (m.type === 'ready') {
-        if (this.state === 'starting') this.setState('running');
+        if (this.state === 'starting') { this.cancelStartupTimer(); this.setState('running'); }
       } else if (m.type === 'css-updated') {
         this.emit({ type: 'css-updated', runId: m.runId });
       } else if (m.type === 'diagnostic' && this.diagnosticCount < 200) {
@@ -71,12 +103,12 @@ export class FrontlabEngine {
       return;
     }
     this.frame.contentWindow.postMessage({
-      channel: 'pfx-frontlab',
+      channel: this.runnerUrl ? 'pfx-frontlab-bridge' : 'pfx-frontlab',
       type: 'css-patch',
       token: this.activeToken,
       runId: this.activeRun,
       css
-    }, '*');
+    }, this.runnerUrl?.origin ?? '*');
   }
   run(): number {
     this.assertActive();
@@ -89,23 +121,36 @@ export class FrontlabEngine {
     crypto.getRandomValues(tokenBytes);
     this.activeToken = Array.from(tokenBytes,b => b.toString(16).padStart(2,'0')).join('');
     const frame = this.container.ownerDocument.createElement('iframe');
-    frame.setAttribute('sandbox','allow-scripts');
+    frame.setAttribute('sandbox', this.runnerUrl ? 'allow-scripts allow-same-origin' : 'allow-scripts');
     frame.setAttribute('referrerpolicy','no-referrer');
     frame.setAttribute('title','Frontlab preview');
-    frame.srcdoc = buildDocument(this.current,this.activeToken,this.activeRun);
+    this.compiledDocument = buildDocument(this.current,this.activeToken,this.activeRun);
+    if (this.runnerUrl) frame.src = this.runnerUrl.href;
+    else frame.srcdoc = this.compiledDocument;
     this.frame?.remove();
     this.frame = frame;
     this.container.append(frame);
     // An event listener may synchronously call stop() or dispose().
     // Emit only after insertion, so a reentrant stop can remove the frame.
     this.setState('starting');
+    if (this.state === 'starting') {
+      const expectedRun = this.activeRun;
+      this.startupTimer = setTimeout(() => {
+        this.startupTimer = null;
+        if (this.state !== 'starting' || this.activeRun !== expectedRun) return;
+        this.stop();
+        this.emit({ type: 'timeout', runId: expectedRun, timeoutMs: this.startupTimeoutMs });
+      }, this.startupTimeoutMs);
+    }
     return this.activeRun;
   }
   stop(): void {
     this.assertActive();
     this.cancelTimer();
+    this.cancelStartupTimer();
     this.activeRun++;
     this.activeToken = '';
+    this.compiledDocument = '';
     this.frame?.remove();
     this.frame = null;
     this.setState('stopped');
@@ -118,6 +163,7 @@ export class FrontlabEngine {
     this.listeners.clear();
   }
   private cancelTimer(): void { if (this.timer !== null) { clearTimeout(this.timer); this.timer = null; } }
+  private cancelStartupTimer(): void { if (this.startupTimer !== null) { clearTimeout(this.startupTimer); this.startupTimer = null; } }
   private assertActive(): void { if (this.state === 'disposed') throw new Error('Engine is disposed'); }
   private setState(state: EngineState): void { this.state=state; this.emit({type:'state',state,runId:this.activeRun}); }
   private emit(e: EngineEvent): void {

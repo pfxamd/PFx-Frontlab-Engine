@@ -36,3 +36,7 @@ The correlation token **is not a security authentication secret**: executable pr
 ## Release status
 
 Development-only engine, version 0.2.0-alpha.0. Passing bounded stress tests is **not** certification that hostile code is safe. Do not label a stable release until the separate-origin hosting boundary is implemented and verified.
+
+## Current cross-origin milestone
+
+An opt-in cross-origin runner adapter and bounded startup watchdog are implemented. The runner has not been deployed to a verified production origin. Dedicated origin deployment, actual HTTP CSP `frame-ancestors` and response-header verification remain release gates. A watchdog cannot forcibly preempt a blocked browser renderer.

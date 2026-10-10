@@ -1,0 +1,19 @@
+<!doctype html>
+<html lang="en">
+<head><meta charset="utf-8"><title>Frontlab cross-origin runner test</title></head>
+<body>
+  <div id="host-secret">HOST_PRIVATE_MARKER</div>
+  <div id="preview"></div>
+  <script type="module">
+    import { FrontlabEngine } from '../dist/index.js';
+    const events=[];
+    const engine = new FrontlabEngine(document.getElementById('preview'),{
+      runnerUrl:'http://127.0.0.1:4174/preview-host/runner.html',
+      startupTimeoutMs:800,
+      debounceMs:25,
+      onEvent(event){events.push(event)}
+    });
+    window.frontlab={engine,events,FrontlabEngine};
+  </script>
+</body>
+</html>

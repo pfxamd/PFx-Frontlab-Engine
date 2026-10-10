@@ -19,6 +19,10 @@ This library executes *untrusted code*. Treat the preview as hostile:
 - A sandbox is **not** a CPU or memory quota. Browsers can still be exhausted by malicious code.
 - The default preview CSP blocks script-initiated network connections, external resources, and form submissions. The iframe sandbox blocks top-level navigation; preview self-navigation and browser resource behavior require separate testing and must not be considered completely blocked. Use a separate preview origin for stronger isolation.
 
+## Remote runner
+
+The opt-in `runnerUrl` adapter can host a trusted bridge on a separate origin, while user code remains in a nested opaque sandbox. See [preview-host deployment](preview-host/README.md). It must be deployed separately; the source repository alone is not a production security boundary. 
+
 ## Development
 ```sh
 npm install
