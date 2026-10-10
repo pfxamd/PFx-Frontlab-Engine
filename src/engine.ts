@@ -29,7 +29,7 @@ export class FrontlabEngine {
         if (this.state === 'starting') this.setState('running');
       } else if (m.type === 'css-updated') {
         this.emit({ type: 'css-updated', runId: m.runId });
-      } else if (this.diagnosticCount < 200) {
+      } else if (m.type === 'diagnostic' && this.diagnosticCount < 200) {
         this.diagnosticCount++;
         this.emit({ type:'diagnostic', diagnostic:{ ...m.diagnostic, runId:m.runId } });
       }
