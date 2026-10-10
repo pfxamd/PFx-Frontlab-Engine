@@ -64,7 +64,7 @@ test('nested preview cannot inspect runner or editor DOM', async ({ page }) => {
 test('rejects same-origin remote runner and unsafe runner URLs', async ({ page }) => {
   const result=await page.evaluate(()=>{
     const candidates=[
-      location.origin+'/preview-host/runner.html',
+      location.origin+'/runner.html',
       'javascript:alert(1)',
       'http://external.invalid/runner.html'
     ];
@@ -92,14 +92,14 @@ test('forged app-origin runtime messages do not reach listeners', async ({ page 
 });
 
 test('missing runner handshake emits timeout, removes frame and allows restart', async ({ page }) => {
-  await page.route('**/preview-host/runner.html', route=>route.fulfill({
+  await page.route('**/runner.html', route=>route.fulfill({
     status:200,contentType:'text/html',body:'<!doctype html><title>Non-responsive runner</title>'
   }));
   await page.evaluate(()=>{
     frontlab.engine.dispose();
     frontlab.events.length=0;
     frontlab.engine=new frontlab.FrontlabEngine(document.querySelector('#preview'),{
-      runnerUrl:'http://127.0.0.1:4174/preview-host/runner.html',
+      runnerUrl:'http://127.0.0.1:4174/runner.html',
       startupTimeoutMs:700,onEvent:event=>frontlab.events.push(event)
     });
     frontlab.engine.update({html:'<p id="recover">Recovered</p>',css:'',javascript:''},true);
@@ -107,7 +107,7 @@ test('missing runner handshake emits timeout, removes frame and allows restart',
   await expect.poll(()=>page.evaluate(()=>frontlab.engine.status),{timeout:6000}).toBe('stopped');
   expect(await page.evaluate(()=>frontlab.events.some(e=>e.type==='timeout'))).toBe(true);
   await expect(page.locator('#preview iframe')).toHaveCount(0);
-  await page.unroute('**/preview-host/runner.html');
+  await page.unroute('**/runner.html');
   await page.evaluate(()=>frontlab.engine.run());
   await expect(page.frameLocator('#preview iframe').frameLocator('iframe').locator('#recover')).toHaveText('Recovered');
   await expect.poll(()=>page.evaluate(()=>frontlab.engine.status)).toBe('running');
