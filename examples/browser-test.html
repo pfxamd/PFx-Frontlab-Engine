@@ -1,0 +1,21 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Frontlab browser integration fixture</title>
+</head>
+<body>
+  <div id="host-secret">HOST_PRIVATE_MARKER</div>
+  <div id="preview"></div>
+  <script type="module">
+    import { FrontlabEngine } from '../dist/index.js';
+    const events = [];
+    const engine = new FrontlabEngine(document.querySelector('#preview'), {
+      debounceMs: 25,
+      onEvent(event) { events.push(event); }
+    });
+    window.frontlab = { engine, events };
+  </script>
+</body>
+</html>
