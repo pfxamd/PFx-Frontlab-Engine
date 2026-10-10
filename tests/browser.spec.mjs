@@ -109,3 +109,37 @@ test('escaped closing-script text stays inside a user JS string', async ({ page 
   await expect(preview.locator('#safe')).toHaveText('</script><img src=x>');
   await expect(preview.locator('img')).toHaveCount(0);
 });
+
+test('CSP initializes before scripts when source contains deceptive head markup', async ({ page }) => {
+  await page.evaluate((files) => frontlab.engine.update(files, true), source(
+    '<!-- <head> --><script>document.body.dataset.marker = document.querySelectorAll(\'meta[http-equiv="Content-Security-Policy"]\').length;</script><p id="proof">Ready</p>',
+    '',
+    ''
+  ));
+  const preview = page.frameLocator('#preview iframe');
+  await expect(preview.locator('#proof')).toHaveText('Ready');
+  await expect(preview.locator('meta[http-equiv="Content-Security-Policy"]')).toHaveCount(1);
+  await expect(preview.locator('body')).toHaveAttribute('data-marker', '1');
+});
+
+test('does not lose the appended script when user HTML contains fake body closing tags', async ({ page }) => {
+  await page.evaluate((files) => frontlab.engine.update(files, true), source(
+    '<html><head><title>Basic</title></head><body><!-- </body> --><p id="before">Works</p></body></html>',
+    '',
+    'document.body.dataset.executed = "yes";'
+  ));
+  const preview = page.frameLocator('#preview iframe');
+  await expect(preview.locator('#before')).toHaveText('Works');
+  await expect(preview.locator('body')).toHaveAttribute('data-executed', 'yes');
+});
+
+test('rapid CSS-only patching retains only the final intended style', async ({ page }) => {
+  await page.evaluate((files) => frontlab.engine.update(files, true), source('<p id="target">Hi</p>','p { color: black }'));
+  const preview = page.frameLocator('#preview iframe');
+  await expect(preview.locator('#target')).toBeVisible();
+  await page.evaluate(() => {
+    for (let i = 0; i < 30; i++) frontlab.engine.updateCSS('p { color: rgb(' + i + ', 0, 0) }');
+  });
+  await expect(preview.locator('#target')).toHaveCSS('color', 'rgb(29, 0, 0)');
+  await expect(page.locator('#preview iframe')).toHaveCount(1);
+});

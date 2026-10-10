@@ -95,8 +95,10 @@ export class FrontlabEngine {
     frame.srcdoc = buildDocument(this.current,this.activeToken,this.activeRun);
     this.frame?.remove();
     this.frame = frame;
-    this.setState('starting');
     this.container.append(frame);
+    // An event listener may synchronously call stop() or dispose().
+    // Emit only after insertion, so a reentrant stop can remove the frame.
+    this.setState('starting');
     return this.activeRun;
   }
   stop(): void {

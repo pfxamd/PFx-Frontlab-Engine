@@ -79,6 +79,15 @@ describe('runtime boundary hardening', () => {
     engine.dispose();
   });
 
+  it('does not resurrect an iframe when a starting listener stops synchronously', () => {
+    const { engine, frame } = harness();
+    engine.subscribe(event => { if (event.type === 'state' && event.state === 'starting') engine.stop(); });
+    engine.run();
+    expect(engine.status).toBe('stopped');
+    expect(frame.remove).toHaveBeenCalled();
+    engine.dispose();
+  });
+
   it('bounds diagnostic forwarding to 200 events per run', () => {
     const { engine, receive } = harness();
     let seen = 0;

@@ -21,6 +21,34 @@ describe('document', () => {
     expect(result).toContain('<\\/script>');
     expect(result).toContain('<\\/style>');
   });
+  it('ignores fake head tags inside HTML comments', () => {
+    const source = '<!-- <head> --><script id="early">window.marker=1</script>';
+    const result = buildDocument({ html:source,css:'',javascript:'' }, 'safe', 2);
+    expect(result.indexOf('Content-Security-Policy')).toBeLessThan(result.indexOf('<script id="early">'));
+    expect(result).toContain('<!-- <head> -->');
+  });
+  it('ignores fake head tags inside script strings', () => {
+    const html = '<html><script>const sample="<head>";</script><body><p>ok</p></body></html>';
+    const result = buildDocument({html,css:'',javascript:''},'safe',3);
+    expect(result.indexOf('Content-Security-Policy')).toBeLessThan(result.indexOf('<script>const sample'));
+  });
+  it('does not inject user JavaScript into HTML comments or raw text', () => {
+    const html = '<html><head></head><body><!-- </body> --><script>const s="</body>";</script><p>ok</p></body></html>';
+    const result = buildDocument({html,css:'',javascript:'window.finished=true'},'safe',4);
+    expect(result.indexOf('window.finished=true')).toBeGreaterThan(result.indexOf('<p>ok</p>'));
+    expect(result.indexOf('window.finished=true')).toBeLessThan(result.lastIndexOf('</body>'));
+  });
+  it('ignores fake closing body tags inside templates', () => {
+    const html = '<html><body><template></body></template><p>normal</p></body></html>';
+    const result = buildDocument({html,css:'',javascript:'window.finished=true'},'safe',5);
+    expect(result.indexOf('window.finished=true')).toBeGreaterThan(result.indexOf('<p>normal</p>'));
+  });
+  it('preserves quoted attributes containing angle brackets', () => {
+    const html = '<html data-info="<head>"><head><title>fine</title></head><body>ok</body></html>';
+    const result = buildDocument({html,css:'',javascript:''},'safe',6);
+    expect(result.indexOf('Content-Security-Policy')).toBeLessThan(result.indexOf('<title>fine</title>'));
+    expect(result).toContain('data-info="<head>"');
+  });
   it('validates run ids',()=>{
     expect(()=>buildDocument(files,'abc',0)).toThrow();
   });
