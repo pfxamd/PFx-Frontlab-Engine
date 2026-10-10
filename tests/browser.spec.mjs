@@ -59,19 +59,21 @@ test('sandbox blocks host document access and CSP blocks fetch', async ({ page }
   expect(await page.locator('#preview iframe').getAttribute('sandbox')).toBe('allow-scripts');
 });
 
-test('runtime errors reach diagnostics without crashing the editor', async ({ page }) => {
+test('runtime errors reach diagnostics without crashing the editor', async ({ page, browserName }) => {
   await page.evaluate((files) => frontlab.engine.update(files, true), source(
     '<h2 id="status">Safe</h2>',
     '',
     'throw new Error("frontlab-runtime-failure");'
   ));
   await expect(page.frameLocator('#preview iframe').locator('#status')).toHaveText('Safe');
-  await page.waitForTimeout(300);
-  console.log('RUNTIME_EVENTS', JSON.stringify(await page.evaluate(() => frontlab.events)));
-  await expect.poll(() => page.evaluate(() => frontlab.events.some(e =>
+  // Sandboxed WebKit reports opaque-origin script exceptions as "Script error."
+  // while Chromium and Firefox expose the original error message.
+  await expect.poll(() => page.evaluate((engineName) => frontlab.events.some(e =>
     e.type === 'diagnostic' && e.diagnostic.kind === 'runtime' &&
-    e.diagnostic.message.includes('frontlab-runtime-failure')
-  ))).toBe(true);
+    (engineName === 'webkit'
+      ? e.diagnostic.message === 'Script error.'
+      : e.diagnostic.message.includes('frontlab-runtime-failure'))
+  ), browserName)).toBe(true);
 });
 
 test('rapid runs show the last document and discard old frames', async ({ page }) => {
