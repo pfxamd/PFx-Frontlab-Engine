@@ -66,6 +66,8 @@ test('runtime errors reach diagnostics without crashing the editor', async ({ pa
     'throw new Error("frontlab-runtime-failure");'
   ));
   await expect(page.frameLocator('#preview iframe').locator('#status')).toHaveText('Safe');
+  await page.waitForTimeout(300);
+  console.log('RUNTIME_EVENTS', JSON.stringify(await page.evaluate(() => frontlab.events)));
   await expect.poll(() => page.evaluate(() => frontlab.events.some(e =>
     e.type === 'diagnostic' && e.diagnostic.kind === 'runtime' &&
     e.diagnostic.message.includes('frontlab-runtime-failure')
