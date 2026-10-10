@@ -7,6 +7,7 @@ export class FrontlabEngine {
   private current: FrontlabFiles = { html: '', css: '', javascript: '' };
   private activeRun = 0;
   private activeToken = '';
+  private diagnosticCount = 0;
   private state: EngineState = 'idle';
   private timer: ReturnType<typeof setTimeout> | null = null;
   private readonly listeners = new Set<EngineListener>();
@@ -21,11 +22,15 @@ export class FrontlabEngine {
     this.debounceMs = options.debounceMs ?? 120;
     if (options.onEvent) this.listeners.add(options.onEvent);
     this.receive = (event) => {
-      if (!this.frame || event.source !== this.frame.contentWindow || !isRuntimeMessage(event.data)) return;
+      if (!this.frame || event.source !== this.frame.contentWindow || event.origin !== 'null' || !isRuntimeMessage(event.data)) return;
       const m = event.data;
       if (m.token !== this.activeToken || m.runId !== this.activeRun) return;
-      if (m.type === 'ready') this.setState('running');
-      else this.emit({ type:'diagnostic', diagnostic:{ ...m.diagnostic, runId:m.runId } });
+      if (m.type === 'ready') {
+        if (this.state === 'starting') this.setState('running');
+      } else if (this.diagnosticCount < 200) {
+        this.diagnosticCount++;
+        this.emit({ type:'diagnostic', diagnostic:{ ...m.diagnostic, runId:m.runId } });
+      }
     };
     container.ownerDocument.defaultView?.addEventListener('message', this.receive);
   }
@@ -38,6 +43,12 @@ export class FrontlabEngine {
   }
   update(files: FrontlabFiles, immediate = false): void {
     this.assertActive();
+    if (!files || typeof files.html !== 'string' || typeof files.css !== 'string' || typeof files.javascript !== 'string') {
+      throw new TypeError('html, css and javascript must be strings');
+    }
+    const encoder = new TextEncoder();
+    const size = encoder.encode(files.html).length + encoder.encode(files.css).length + encoder.encode(files.javascript).length;
+    if (size > 1024 * 1024) throw new RangeError('Frontlab source exceeds 1 MiB');
     this.current = { ...files };
     this.cancelTimer();
     if (immediate) this.run();
@@ -47,6 +58,7 @@ export class FrontlabEngine {
     this.assertActive();
     this.cancelTimer();
     this.activeRun++;
+    this.diagnosticCount = 0;
     const tokenBytes = new Uint8Array(16);
     const crypto = this.container.ownerDocument.defaultView?.crypto;
     if (!crypto?.getRandomValues) throw new Error('Secure crypto is required');
@@ -82,5 +94,9 @@ export class FrontlabEngine {
   private cancelTimer(): void { if (this.timer !== null) { clearTimeout(this.timer); this.timer = null; } }
   private assertActive(): void { if (this.state === 'disposed') throw new Error('Engine is disposed'); }
   private setState(state: EngineState): void { this.state=state; this.emit({type:'state',state,runId:this.activeRun}); }
-  private emit(e: EngineEvent): void { for (const listener of this.listeners) listener(e); }
+  private emit(e: EngineEvent): void {
+    for (const listener of this.listeners) {
+      try { listener(e); } catch { /* Consumer callbacks must not crash the engine. */ }
+    }
+  }
 }
