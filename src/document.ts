@@ -31,7 +31,12 @@ function bootstrap(token: string, runId: number): string {
     }
     addEventListener('error',e=>send('diagnostic',{level:'error',kind:'runtime',message:String(e.message||'Script error')}));
     addEventListener('unhandledrejection',e=>send('diagnostic',{level:'error',kind:'promise',message:stringify(e.reason)}));
-    send('ready');
+    // Report readiness only after the document and user scripts are parsed.
+    if(document.readyState==='loading'){
+      document.addEventListener('DOMContentLoaded',()=>send('ready'),{once:true});
+    }else{
+      send('ready');
+    }
   })();`;
 }
 export function buildDocument(files: FrontlabFiles, token: string, runId: number): string {
