@@ -1,5 +1,7 @@
 # PFx Frontlab Engine
 
+Current development version: **0.3.0-alpha.0**.
+
 Framework-independent browser runtime for HTML, CSS, and JavaScript experiments.
 
 ## Scope

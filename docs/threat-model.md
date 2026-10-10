@@ -35,7 +35,7 @@ The correlation token **is not a security authentication secret**: executable pr
 
 ## Release status
 
-Development-only engine, version 0.2.0-alpha.0. Passing bounded stress tests is **not** certification that hostile code is safe. Do not label a stable release until the separate-origin hosting boundary is implemented and verified.
+Development-only engine, version 0.3.0-alpha.0. Passing bounded stress tests is **not** certification that hostile code is safe. Do not label a stable release until the separate-origin hosting boundary is implemented and verified.
 
 ## Current cross-origin milestone
 
