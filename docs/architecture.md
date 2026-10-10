@@ -20,7 +20,7 @@ The frame is `sandbox="allow-scripts"`, without `allow-same-origin`, resulting i
 - `sandbox` does not provide guaranteed CPU/memory limits. Infinite loops can still stall a page; separate origin/process and stronger browser-level isolation should be evaluated before accepting shared untrusted code.
 - Inline user JavaScript and HTML event handlers are allowed by design within the isolated frame.
 - Network remains blocked; adding remote assets requires an explicit policy design.
-- CSS-only patching is deferred until its cross-frame update protocol and CSP implications are verified.
+- CSS-only changes use `updateCSS(css)` to send a scoped message to the active preview; this preserves DOM and JavaScript state. Pending or stopped previews start a fresh run.
 - User HTML document injection is text-based in this initial version. A formal parser-aware composer is a future hardening task.
 
 ## Testing
