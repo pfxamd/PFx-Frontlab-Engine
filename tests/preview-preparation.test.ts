@@ -1,11 +1,9 @@
 import { describe,expect,it } from 'vitest';
-import { readFile, mkdtemp, rm } from 'node:fs/promises';
-import { tmpdir } from 'node:os';
-import { join } from 'node:path';
+import { readFile } from 'node:fs/promises';
 import { spawnSync } from 'node:child_process';
 
 describe('dedicated runner production preparation', () => {
-  const run = (origin) => spawnSync(process.execPath,['scripts/prepare-preview-host.mjs'],{
+  const run = (origin: string) => spawnSync(process.execPath,['scripts/prepare-preview-host.mjs'],{
     cwd:process.cwd(),encoding:'utf8',env:{...process.env,FRONTLAB_EDITOR_ORIGIN:origin}
   });
   it('rejects missing editor origin (fail closed)',()=>{
