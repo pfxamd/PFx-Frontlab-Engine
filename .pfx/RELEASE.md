@@ -7,3 +7,7 @@
 After successful checks, one existing CI job commits only generated version files on current main. It never force-pushes, never overwrites a newer source update, and uses `[skip ci]` to avoid recursive builds. Its exact bot message is excluded from version counting. Pull requests never write to main.
 
 Pinned consumers keep their pinned core revision and version until explicitly updated. Do not report the latest upstream release as the version embedded in a consumer.
+
+## Shared release engine
+
+The original `--sync` and `--publish` commands now delegate to the pinned PFx Release Core `v0.1.0-alpha.2` archive, installed locally under git-ignored `.pfx-release-tools/`. Existing Git source baseline and metadata semantics are preserved; project dependencies and any manually maintained changelog remain untouched.
