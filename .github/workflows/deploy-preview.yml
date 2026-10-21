@@ -11,10 +11,14 @@ jobs:
     steps:
       - name: Checkout source
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: '22'
+      - name: Resolve deterministic core version
+        run: node .pfx/release.mjs --sync
       - name: Validate deployment configuration
         env:
           FRONTLAB_EDITOR_ORIGIN: ${{ vars.FRONTLAB_EDITOR_ORIGIN }}

@@ -1,6 +1,8 @@
 # PFx Frontlab Engine
 
-Current development version: **0.3.0-alpha.0**.
+[![Core version](./version-badge.svg)](./version.json)
+
+The current development version is generated from Git and shown in the badge above.
 
 Framework-independent browser runtime for HTML, CSS, and JavaScript experiments.
 
@@ -34,3 +36,7 @@ npm run typecheck
 ```
 
 The engine has no UI-framework dependencies. See `docs/architecture.md` for protocol and threat-model details.
+
+## Automatic source versions
+
+The badge, `version.json`, and package manifests share one Git-derived version. Run `node .pfx/release.mjs --sync` before a local build. Full Git history is required. Rebuilding the same source keeps the same number; metadata-only bot commits do not advance it. See [.pfx/RELEASE.md](.pfx/RELEASE.md).

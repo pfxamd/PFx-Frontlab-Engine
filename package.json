@@ -11,7 +11,9 @@
     }
   },
   "files": [
-    "dist"
+    "dist",
+    "version.json",
+    "version-badge.svg"
   ],
   "scripts": {
     "build": "tsc -p tsconfig.build.json",
@@ -21,7 +23,8 @@
     "benchmark": "node benchmarks/compose.mjs",
     "build:runner": "node scripts/prepare-preview-host.mjs",
     "verify:runner": "node scripts/verify-preview-host.mjs",
-    "prepare": "npm run build"
+    "prepare": "npm run build",
+    "release:version": "node .pfx/release.mjs --sync"
   },
   "devDependencies": {
     "typescript": "^5.9.3",
