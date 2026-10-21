@@ -1,6 +1,6 @@
 {
   "name": "@pfxamd/frontlab-engine",
-  "version": "0.3.0-alpha.0",
+  "version": "0.3.0-alpha.1",
   "type": "module",
   "private": true,
   "description": "Isolated browser-native HTML/CSS/JavaScript preview runtime",

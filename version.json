@@ -3,8 +3,8 @@
   "kind": "core",
   "product": "PFx Frontlab Engine",
   "channel": "Alpha",
-  "version": "0.3.0-alpha.0",
-  "label": "Alpha 0.3.0-alpha.0",
-  "commit": "dae72afd3bf7b1b7f657a2935f90c4e115730f64",
-  "sourceDate": "2026-10-10T12:51:53+01:00"
+  "version": "0.3.0-alpha.1",
+  "label": "Alpha 0.3.0-alpha.1",
+  "commit": "adc1053c35aca3f4b91070d9973a3cbfdef2f6cd",
+  "sourceDate": "2026-10-21T14:52:44+01:00"
 }
